@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+{% include 'calc/navbar.html' %}
+<br>
+<div class="container">
+<form method="POST">
+    {% csrf_token %}
+    {{form.as_p}}
+    <button class="btn btn-primary" type="submit">login</button>
+
+
+</form>
+    <h6>If you yet to register,click<a href="/register"> register</a></h6>
+</div>
+
+</body>
+</html>

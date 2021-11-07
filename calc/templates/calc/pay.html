@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Payment Home</title>
+</head>
+
+<body style="background-color:skyblue;">
+{% include 'calc/navbar.html' %}
+<br><br><br><br>
+
+<div class="container">
+    <div class="text-center">
+    <h2>Payment Home</h2>
+
+    {% if error %}
+    <h3>{{ error }}</h3>
+    {% endif %}
+<br>
+
+    <form method="post">
+        {% csrf_token %}
+        <label for="username" style="font-size:23px;">Username: </label>
+        <input type="text" style="width:300px; height:38px;" name="username" required>
+        <br><br><br><label for="password" style="font-size:23px;">Password: </label>
+        <input type="text" style="width:300px; height:38px;" name="password" required>
+        <br><br><br><label for="amount" style="font-size:23px;">Amount: </label>
+        <input type="number" style="width:300px; height:38px;" name="amount">
+        <br><br><br><input type="submit" class="btn btn-warning" style="width:300px;" name="submit" value="Submit" required>
+    </form>
+    </div>
+</div>
+</body>
+
+</html>
