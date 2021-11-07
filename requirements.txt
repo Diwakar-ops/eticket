@@ -11,7 +11,7 @@ matplotlib==3.4.3
 Naked==0.1.31
 numpy==1.21.2
 Pillow==8.3.2
-pycryptodome==3.11.0
+Crypto==1.4.1
 pyparsing==2.4.7
 pypng==0.0.21
 PyQRCode==1.2.1
