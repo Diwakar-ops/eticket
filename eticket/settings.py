@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-7m18-8y#39=uz9+h6@!b59b0=idd(w158zjn)l3ksa%vox-o3h
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['http://127.0.0.1:8000/']
+ALLOWED_HOSTS = ['http://127.0.0.1:8000/','eticketsystem.herokuapp.com/']
 
 
 # Application definition
