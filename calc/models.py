@@ -2,34 +2,42 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 
+from django.utils import timezone
 User = get_user_model()
+timing=[]
 class Bus(models.Model):
-    from_data=models.CharField(max_length=200)
-    to_data = models.CharField(max_length=200)
+
+    date = models.DateField(blank=True,null=True)
+
+
+    timing = models.TextField(blank=True,null=True)
+
+    stopping_including_initial_and_final_destination=models.TextField(max_length=200,null=True,blank=True)
+
+
 
     busnumber=models.CharField(max_length=200)
     type=models.CharField(max_length=200)
     uid=models.IntegerField()
-    ceats=models.IntegerField()
+    seats=models.IntegerField()
     cost=models.IntegerField(default=200)
 
     def __str__(self):
         return self.busnumber
-class Stoppings(models.Model):
+'''class Stoppings(models.Model):
     stopping=models.CharField(max_length=200)
     b=models.ForeignKey(Bus,on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.stopping
-
-
-
-
-
-
+        return self.stopping'''
 
 
 # Create your models here.
+class Ticket(models.Model):
+    busnumber=models.CharField(max_length=200)
+    initial=models.CharField(max_length=200)
+    final=models.CharField(max_length=200)
+    no_of_tickets=models.IntegerField()
 
 
 class Transaction(models.Model):
