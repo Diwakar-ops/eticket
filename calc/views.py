@@ -1,4 +1,5 @@
 
+from geopy.geocoders import Nominatim
 from django.shortcuts import render,redirect
 from django.core.mail import send_mail,EmailMessage
 from django.contrib.auth.models import User
@@ -6,8 +7,14 @@ from .models import User
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login as auth_login
 from django.conf import settings
-from .models import Transaction,Bus,Stoppings
+from .models import Transaction,Bus,Ticket
 from .paytm import generate_checksum, verify_checksum
+
+import folium
+import difflib
+
+
+
 
 
 
@@ -16,8 +23,8 @@ from django.contrib.auth import login as u_login
 from django.contrib.auth import logout,authenticate
 from calc.forms import UserForm,BookForm
 from django.contrib import messages
-import pyqrcode
-import requests
+
+
 
 
 
@@ -27,13 +34,9 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from urllib.request import urlopen
-import matplotlib.pyplot as plt
+
 import json
-import png
 
-
-
-import webbrowser
 
 
 
@@ -51,6 +54,9 @@ def validatelocation(request):
 
 
 
+    froma_real=request.session.get('froma_real')
+    toa_real=request.session.get('toa_real')
+    timea_real=request.session.get('timea_real')
     from_data=request.session.get('from_data')
     to_data = request.session.get('to_data')
     '''emailid = request.session.get('email')
@@ -59,31 +65,46 @@ def validatelocation(request):
     emailid=User.objects.get(username='username').email'''
     bus=request.GET['bus']
 
-
     print(bus)
     b=Bus.objects.get(busnumber=bus)
-    busy=Stoppings.objects.filter(b=b)
 
 
 
 
-    listofstoppings=[c.stopping for c in busy]
-    stop1=listofstoppings.index(from_data)
-    stop2 = listofstoppings.index(to_data)
+
+
+    listofstoppings=b.stopping_including_initial_and_final_destination.split(",")
+
+    stop1=listofstoppings.index(froma_real)
+    stop2 = listofstoppings.index(toa_real)
 
     type = b.type
     cost = b.cost
-    ceats=b.ceats
-    ceats=ceats-1
-    b.ceats=ceats
-    b.save(update_fields=['ceats'])
+    seats=b.seats
+    index1=listofstoppings.index(froma_real)
+
+
+
+
+
+
+
+
+
+
+
+    no_of_tickets=request.session.get('no_of_tickets')
+    b.save(update_fields=['seats'])
     cost_of_single=cost/len(listofstoppings)
     cost=(abs(stop2-stop1))*cost_of_single
+    cost=cost*int(no_of_tickets)
 
 
 
-    from_data=request.session.get('from_data')
-    to_data = request.session.get('to_data')
+    froma_real=request.session.get('froma_real')
+    toa_real = request.session.get('toa_real')
+
+
 
 
     busnumber=b.busnumber
@@ -92,7 +113,11 @@ def validatelocation(request):
     request.session['busnumber'] = busnumber
     request.session['type'] = type
 
+
+
     request.session['cost'] = cost
+    ticket=Ticket.objects.create(busnumber=busnumber,initial=froma_real,final=toa_real,no_of_tickets=no_of_tickets)
+    ticket.save()
     '''except KeyError as err:
         message="Enter valid from to addres'''
 
@@ -101,12 +126,12 @@ def validatelocation(request):
     busnumber = request.session.get('busnumber')
     type = request.session.get('type')
     '''emailid = request.session.get('email')'''
-    from_data=request.session.get('from_data')
-    to_data = request.session.get('to_data')
+    froma_real=request.session.get('froma_real')
+    toa_real = request.session.get('toa_real')
 
     message = "Hello\nThanks for choosing our website. \n you booked from {0} to {1}. \nCost : {2}\nBus Number:{3}\nBus type:{4}\nCeats remaining:{5}\nThanks and regards\nTICKET ADMIN".format(
-        from_data, to_data, cost,busnumber ,
-        type,ceats)
+        froma_real, toa_real, cost,busnumber ,
+        type,seats)
     '''print(mail_content)
     print(emailid)'''
 
@@ -131,7 +156,7 @@ def validatelocation(request):
     webbrowser.open(
     "https://www.google.com/maps/dir/{0},+Tamil+Nadu,+India/{1},+Karnataka,+India/".format(from_data, to_data))
     return render(request,'calc/pay.html')'''
-    return render(request,"calc/details.html",context={'message':message,'from_data':from_data,'to_data':to_data,'cost':cost,'busnumber':busnumber,'type':type,'ceats':ceats})
+    return render(request,"calc/details.html",context={'message':message,'from_data':from_data,'to_data':to_data,'cost':cost,'busnumber':busnumber,'type':type,'seats':seats})
 
 
 def booked(request):
@@ -144,36 +169,55 @@ def booked(request):
 
 
 def home(request):
-    username=request.session.get('username')
-    password = request.session.get('password')
-    emailid= request.session.get('email')
+
 
     if request.method=="POST":
-        form=BookForm(request.POST)
-        if form.is_valid():
+
+
+
+        from_data=request.POST['from_data']
+        to_data=request.POST['to_data']
+        date=request.POST['date']
+        time=request.POST['time']
+        no_of_tickets=request.POST['no_of_tickets']
+        request.session['no_of_tickets']=no_of_tickets
+
+
+        request.session['from_data']=from_data
+        request.session['to_data']=to_data
+        request.session['date']=date
+        request.session['time']=time
+
+        return redirect('calc:bus_choose')
+
+
+
+    return render(request,"calc/home.html")
 
 
 
 
 
-            from_data = form.cleaned_data["from_data"]
-            request.session['from_data']=from_data
-            to_data = form.cleaned_data["to_data"]
-            request.session['to_data'] = to_data
-            '''url = "https://harisuriyakr.github.io/routes.json"
-            response = urlopen(url)
-            data_json = json.loads(response.read())'''
-            bus=Bus(from_data=from_data,to_data=to_data)
-            uid_bus="123"
-            cost = "200"
-            return redirect('calc:bus_choose')
 
 
-    form = BookForm()
-    return render(request,'calc/home.html',{'form':form})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def login(request):
+
 
 
     if request.method=="POST":
@@ -196,8 +240,11 @@ def login(request):
                 return redirect("calc:home")
             else:
                 messages.error(request,f"Inavalid username and password")
+
+
         else:
             messages.error(request, f"Inavalid username and password")
+
 
     form=AuthenticationForm()
 
@@ -250,13 +297,18 @@ def initiate_payment(request):
     try:
         username=request.POST['username']
         password=request.POST['password']
+        busnumber=request.session.get("busnumber")
+        initial=request.session.get("from_data")
+        final=request.session.get("to_data")
+
         amount = int(request.POST['amount'])
+        #t=Ticket(busnumber=)
         user = authenticate(request, username=username, password=password)
         if user is None:
             raise ValueError
         auth_login(request=request, user=user)
     except:
-        return render(request, 'calc/pay.html', context={'error': 'Wrong Accound Details or amount'})
+        return render(request, 'calc/pay.html', context={'error': 'Wrong Account Details or amount'})
 
     transaction = Transaction.objects.create(made_by=user, amount=amount)
     transaction.save()
@@ -303,6 +355,7 @@ def callback(request):
         if is_valid_checksum:
             received_data['message'] = "Checksum Matched"
         else:
+
             received_data['message'] = "Checksum Mismatched"
             return render(request, 'calc/callback.html', context=received_data)
         return render(request, 'calc/callback.html', context=received_data)
@@ -316,19 +369,87 @@ def bus_choose(request):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     from_data=request.session.get("from_data")
+
     to_data = request.session.get("to_data")
+    no_of_tickets=request.session.get("no_of_tickets")
+
+    geolocator = Nominatim(user_agent="http")
+    location1 = geolocator.geocode(from_data)
+    location2 = geolocator.geocode(to_data)
+    data1=location1.raw
+    data2=location2.raw
+
+    location1=float(data1['lat']),float(data1['lon'])
+    location2=float(data2['lat']),float(data2['lon'])
+    p=folium.Map(location1)
+    folium.Marker(location1,popup=from_data).add_to(p)
+    folium.Marker(location2,popup=to_data).add_to(p)
+    from geopy.distance import distance
+    km=distance(location1,location2)
+    mile=distance(location1,location2).miles
+    folium.PolyLine((location1,location2)).add_to(p)
+    list_of_buses=[]
+    date=request.session.get("date")
+    time=request.session.get("time")
 
 
-    list_of_buses1=[c.b.busnumber for c in Stoppings.objects.filter(stopping=from_data) ]
-    list_of_buses2=[c.b.busnumber for c in Stoppings.objects.filter(stopping=to_data) ]
-
-    list_of_buses1=set(list_of_buses1)
-    list_of_buses2=set(list_of_buses2)
-    list_of_buses=list(list_of_buses1&list_of_buses2)
-
-    print(list_of_buses)
 
 
+    for c in Bus.objects.filter(date=date):
+        froma=difflib.get_close_matches(from_data,list(c.stopping_including_initial_and_final_destination.split(',')))
+        toa=difflib.get_close_matches(to_data,list(c.stopping_including_initial_and_final_destination.split(',')))
+        timea=difflib.get_close_matches(time,list(c.timing.split(',')))
+        stop=c.stopping_including_initial_and_final_destination.split(',')
+        if len(froma)!=0 and len(toa)!=0 and len(timea)!=0:
 
-    return render(request,'calc/choose_bus.html',context={'list_of_buses':list_of_buses})
+
+            if froma[0] in c.stopping_including_initial_and_final_destination.split(',') and toa[0] in c.stopping_including_initial_and_final_destination.split(',') and timea[0] in c.timing.split(',') :
+
+                froma_real=froma[0]
+                toa_real=toa[0]
+                timea_real=timea[0]
+                busnum=c.busnumber
+
+                list_of_buses.append(busnum)
+
+
+
+
+
+
+    p.save('map.html')
+    request.session['froma_real']=froma_real
+    request.session['toa_real']=toa_real
+    request.session['timea_real']=timea_real
+
+
+
+
+
+
+
+
+
+
+
+
+
+    return render(request,'calc/choose_bus.html',context={'list_of_buses':list_of_buses,'stop':froma,'p':p._repr_html_()})
